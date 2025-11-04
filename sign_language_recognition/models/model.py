@@ -1,14 +1,12 @@
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense, Dropout, Bidirectional, Conv1D, MaxPooling1D, BatchNormalization
-# L2 정규화가 사용되지 않으므로 import에서 제거합니다.
-# from tensorflow.keras.regularizers import l2
+from tensorflow.keras.layers import Conv1D, MaxPooling1D, LSTM, Dense, Dropout, Bidirectional, BatchNormalization
 from sign_language_recognition.train.utils import log_message
 
 def build_lstm_model(input_shape: tuple, num_classes: int) -> tf.keras.Model:
     """
-    실시간 수어 통역 시스템에 적합한 경량화된 Bidirectional LSTM 기반 모델을 구성합니다.
-    (컴파일은 train.py에서 수행합니다.)
+    용량을 4배 확장하고 드롭아웃을 완화한 CNN-BiLSTM 모델을 구축합니다.
+    (2,737개 클래스 미달 학습 해소를 위한 최종 구조)
 
     Args:
         input_shape (tuple): (SEQUENCE_LENGTH, features_per_frame)
@@ -17,21 +15,28 @@ def build_lstm_model(input_shape: tuple, num_classes: int) -> tf.keras.Model:
     log_message(f"모델 Input Shape: {input_shape}, Output Classes: {num_classes}")
     
     model = Sequential([
-        Conv1D(128, 5, activation='relu', input_shape=input_shape),
+        # 💡 Conv1D 필터 수 확장: 128 -> 256
+        Conv1D(filters=256, kernel_size=5, activation='relu', input_shape=input_shape),
         BatchNormalization(),
-        MaxPooling1D(2),
-        Dropout(0.3),
+        MaxPooling1D(pool_size=2),
+        Dropout(0.2), # 규제 완화
 
-        Bidirectional(LSTM(128, return_sequences=True, dropout=0.3)),
-        Bidirectional(LSTM(64, return_sequences=False, dropout=0.3)),
-        Dropout(0.3),
+        # 💡 Bidirectional LSTM 유닛 수 확장: 128 -> 256
+        Bidirectional(LSTM(256, return_sequences=True, dropout=0.2)),
+        
+        # 💡 Bidirectional LSTM 유닛 수 확장: 128 -> 256
+        Bidirectional(LSTM(256, return_sequences=False, dropout=0.2)), 
+        Dropout(0.2), # 규제 완화
 
-        Dense(128, activation='relu'),
-        Dropout(0.3),
+        # 💡 Dense 계층 유닛 수 확장: 128 -> 256
+        Dense(256, activation='relu'),
+        Dropout(0.2), # 규제 완화
+        
+        # 최종 출력 계층
         Dense(num_classes, activation='softmax')
     ])
     
-    # 💡 model.summary()를 출력하기 전에 명시적으로 빌드
+    # 모델 빌드 및 요약
     try:
         model.build(input_shape=(None, *input_shape))
         log_message("모델 빌드 완료.")
