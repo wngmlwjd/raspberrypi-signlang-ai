@@ -1,0 +1,39 @@
+[v1]
+model version 1
+
+[v2]
+model version 2
+전체 데이터셋 사용
+
+epochs
+1
+5
+5
+5
+10
+
+[v3]
+model version 2
+training_validation_intersection_classes 에 포함된 데이터셋만 사용
+
+epochs
+10
+1
+3
+
+[v4]
+model version 3
+training_validation_intersection_classes 에 포함된 데이터셋만 사용
+
+epochs
+10
+7
+3
+
+[v5]
+model version 4
+training_validation_intersection_classes 에 포함된 데이터셋만 사용
+
+epochs
+10
+10
