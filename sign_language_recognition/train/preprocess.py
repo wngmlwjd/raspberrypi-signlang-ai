@@ -74,12 +74,19 @@ def load_sequences_from_manifest(
             continue
 
         relative_path = Path(entry['landmark_folder_relative_path'])
-        npy_data_dir = base_dir / relative_path
+        # 참고: base_dir은 './dataset'이므로, 전체 경로를 조합합니다.
+        npy_data_dir = base_dir / relative_path 
         
         # ... (로그 및 로드 로직 유지) ...
-        if (idx + 1) % 100 == 0 or idx == 0 or idx == len(manifest_entries) - 1:
-            log_message(f"[{idx+1}/{len(manifest_entries)}] 로드 중: 라벨='{entry['word_label']}', 경로={relative_path}")
-        
+        # 현재 처리 중인 항목이 증분 항목일 경우에만 진행 상황을 로그에 자주 출력합니다.
+        if (keys_to_process is None) and ((idx + 1) % 100 == 0 or idx == 0 or idx == len(manifest_entries) - 1):
+             log_message(f"[{idx+1}/{len(manifest_entries)}] 로드 중: 라벨='{entry['word_label']}', 경로={relative_path}")
+        elif keys_to_process is not None:
+            # 증분 모드에서는 처리되는 항목만 카운트하고 로그를 찍는 것이 더 효율적입니다.
+            current_processed_idx = len(labels) 
+            if current_processed_idx % 10 == 0:
+                 log_message(f"[증분 {current_processed_idx}/{entries_to_process_count}] 로드 중: 라벨='{entry['word_label']}'")
+
         if not npy_data_dir.is_dir():
             log_message(f"경고: 랜드마크 폴더가 존재하지 않아 건너뜁니다: {npy_data_dir.name}")
             continue
@@ -142,8 +149,9 @@ def _load_and_preprocess_single_dataset(
     if x_npy_path.exists() and y_npy_path.exists() and not force_reprocess:
         try:
             # 1-1. 기존 데이터 로드 시도
-            X_old = np.load(x_npy_path)
-            Y_old = np.load(y_npy_path)
+            # mmap_mode='r'을 사용하여 메모리 사용량을 절약하고 파일에서 직접 읽습니다.
+            X_old = np.load(x_npy_path, mmap_mode='r') 
+            Y_old = np.load(y_npy_path, mmap_mode='r') 
             log_message(f"기존 NPY 데이터 로드 성공. Shape: X={X_old.shape}, Y={Y_old.shape}")
             
             # 1-2. 매니페스트 키 파일과 비교하여 증분 처리 필요성 판단
@@ -165,7 +173,7 @@ def _load_and_preprocess_single_dataset(
                 if not new_keys_to_process:
                     log_message("⚠️ 매니페스트는 최신이지만, NPY 생성 이후에 추가된 새 항목 키가 없어 증분 처리 건너뜀.")
                     # NPY 파일 수정 시간을 Manifest와 동기화 (다음번 실행 시 다시 검사하지 않도록)
-                    os.utime(x_npy_path, (time.time(), time.time())) 
+                    os.utime(x_npy_path, (time.time(), time.path.getmtime(manifest_path))) 
                     return X_old, Y_old, label_encoder
 
                 log_message(f"✅ 증분 처리 시작: 매니페스트에 {len(new_keys_to_process)}개의 새 항목이 추가됨.")
@@ -186,7 +194,7 @@ def _load_and_preprocess_single_dataset(
         log_message("강제 재처리 모드 활성화. 전체 manifest를 기반으로 새로 생성합니다.")
         x_npy_path.unlink(missing_ok=True)
         y_npy_path.unlink(missing_ok=True)
-        X_old, Y_old = np.array([]), np.array([])
+        X_old, Y_old = None, None # np.array([]) 대신 None을 사용하여 명확히 구분
         keys_to_process = None # 전체 manifest 처리
         
     elif is_incremental_mode:
@@ -215,13 +223,12 @@ def _load_and_preprocess_single_dataset(
         return None, None, label_encoder
 
     # 2-3. 라벨 인코딩 및 최종 병합
-    
-    # 전체 데이터 라벨 (기존 + 신규)을 인코딩하기 위해 임시로 병합
+    X_final, Y_final = x_new_raw, None
+
     if X_old is not None:
-        # 증분 모드에서만 사용되므로, Y_old는 이미 인코딩된 상태입니다.
-        # 신규 라벨만 인코더에 fit/transform 해야 합니다.
+        # 🟢 증분 모드
         if label_encoder is None:
-             log_message("치명적 오류: 증분 모드인데 LabelEncoder가 로드되지 않았습니다.")
+             log_message("치명적 오류: 증분 모드인데 LabelEncoder가 로드되지 않았습니다. 처리를 중단합니다.")
              return None, None, label_encoder
              
         try:
@@ -230,27 +237,43 @@ def _load_and_preprocess_single_dataset(
             log_message(f"치명적 오류: 증분 데이터에 훈련 데이터에 없는 클래스가 포함되어 있습니다. {repr(e)}")
             return None, None, label_encoder
         
-        # 데이터 병합
+        # 데이터 병합 (기존 + 신규)
         X_final = np.concatenate((X_old, x_new_raw), axis=0)
         Y_final = np.concatenate((Y_old, Y_new_encoded), axis=0)
+        
         log_message(f"증분 데이터 병합 완료. 최종 Shape: X={X_final.shape}, Y={Y_final.shape}")
+        
+        # X_old와 Y_old가 mmap_mode='r'로 로드되었을 수 있으므로, 메모리에 복사하여 저장합니다.
+        X_final = X_final.copy()
+        Y_final = Y_final.copy()
 
     else:
-        # 전체 재처리 (force_reprocess=True 또는 NPY 파일이 없던 경우)
-        if label_encoder is None:
-            label_encoder = LabelEncoder()
-            Y_encoded = label_encoder.fit_transform(y_new_raw_labels) 
-            log_message(f"[{data_type.upper()}] 새로운 LabelEncoder를 생성하고 fit했습니다. 클래스 수={len(label_encoder.classes_)}")
-        else:
-            try:
-                Y_encoded = label_encoder.transform(y_new_raw_labels)
+        # 🔴 전체 재처리 (force_reprocess=True 또는 NPY 파일이 없던 경우)
+        if data_type == 'train':
+            # 훈련 데이터인 경우에만 인코더를 새로 fit
+            if label_encoder is None:
+                label_encoder = LabelEncoder()
+                Y_final = label_encoder.fit_transform(y_new_raw_labels) 
+                log_message(f"[{data_type.upper()}] 새로운 LabelEncoder를 생성하고 fit했습니다. 클래스 수={len(label_encoder.classes_)}")
+            else:
+                # force_reprocess가 True이지만 외부에서 encoder를 전달받은 경우
+                Y_final = label_encoder.transform(y_new_raw_labels)
                 log_message(f"[{data_type.upper()}] 기존 LabelEncoder를 사용하여 transform했습니다.")
-            except ValueError as e:
-                log_message(f"치명적 오류: 검증 데이터에 훈련 데이터에 없는 클래스가 포함되어 있습니다. {repr(e)}")
-                return None, None, label_encoder
+        elif data_type == 'val':
+            # 검증 데이터인 경우 훈련 데이터에서 생성된 인코더를 사용
+            if label_encoder is not None:
+                try:
+                    Y_final = label_encoder.transform(y_new_raw_labels)
+                    log_message(f"[{data_type.upper()}] 기존 LabelEncoder를 사용하여 transform했습니다.")
+                except ValueError as e:
+                    log_message(f"치명적 오류: 검증 데이터에 훈련 데이터에 없는 클래스가 포함되어 있습니다. {repr(e)}")
+                    return None, None, label_encoder
+            else:
+                 log_message("치명적 오류: 검증 데이터는 훈련 인코더가 필요합니다. 처리를 중단합니다.")
+                 return None, None, label_encoder
         
         X_final = x_new_raw
-        Y_final = Y_encoded
+        # Y_final은 위에서 이미 계산됨
 
     # 2-4. 저장 (NPY 파일 덮어쓰기)
     os.makedirs(x_npy_path.parent, exist_ok=True)
@@ -260,18 +283,27 @@ def _load_and_preprocess_single_dataset(
     
     # NPY 저장 후, 매니페스트 키 파일도 업데이트 (전체 키로 덮어쓰기)
     if is_incremental_mode:
+        # 🌟 새로 처리된 키만 기존 파일에 추가 ('a' 모드)
         with open(processed_manifest_keys_path, 'a', encoding='utf-8') as f:
             for key in new_keys_to_process:
                 f.write(key + '\n')
-        log_message(f"✅ 처리 완료 키 파일 업데이트 완료: {processed_manifest_keys_path.name}")
+        log_message(f"✅ 처리 완료 키 파일 업데이트 완료: {processed_manifest_keys_path.name} ({len(new_keys_to_process)}개 추가)")
+        
+        # NPY 파일의 수정 시간을 매니페스트와 동기화
+        os.utime(x_npy_path, (time.time(), os.path.getmtime(manifest_path)))
+        os.utime(y_npy_path, (time.time(), os.path.getmtime(manifest_path)))
+
     elif force_reprocess and X_final.size > 0:
-        # 전체 재처리 후에도 키 파일이 비어 있다면, 모든 키로 채워야 함 (clean state)
+        # 전체 재처리 후에는 현재 매니페스트의 모든 키로 파일 재작성 ('w' 모드)
         all_keys_in_manifest = get_all_manifest_keys(manifest_path)
         with open(processed_manifest_keys_path, 'w', encoding='utf-8') as f:
             for key in all_keys_in_manifest:
                 f.write(key + '\n')
         log_message(f"✅ 전체 재처리 후 처리 완료 키 파일 재작성 완료: {processed_manifest_keys_path.name}")
-        
+        # NPY 파일의 수정 시간을 매니페스트와 동기화
+        os.utime(x_npy_path, (time.time(), os.path.getmtime(manifest_path)))
+        os.utime(y_npy_path, (time.time(), os.path.getmtime(manifest_path)))
+
 
     log_message(f"[{data_type.upper()}] 데이터셋 저장 완료: {x_npy_path.name}, {y_npy_path.name}")
     log_message(f"[{data_type.upper()}] 최종 생성된 데이터 shape: X={X_final.shape}, Y={Y_final.shape}")
@@ -301,6 +333,10 @@ def prepare_and_load_datasets(
         VAL_X_NPY_PATH.unlink(missing_ok=True)
         VAL_Y_NPY_PATH.unlink(missing_ok=True)
         ENCODER_PATH.unlink(missing_ok=True)
+        # 매니페스트 처리 기록 파일도 초기화
+        PROCESSED_MANIFEST_TRAIN.unlink(missing_ok=True)
+        PROCESSED_MANIFEST_VAL.unlink(missing_ok=True)
+
     
     # 2. 훈련 데이터 처리 
     X_train, Y_train, encoder = _load_and_preprocess_single_dataset(
@@ -314,13 +350,14 @@ def prepare_and_load_datasets(
     )
     
     # 3. 인코더 저장 및 로드
-    if encoder is not None and not ENCODER_PATH.exists():
-        # ... (기존 인코더 저장 로직 유지) ...
-        with open(ENCODER_PATH, 'w') as f:
-            json.dump({'classes': list(encoder.classes_)}, f)
-        log_message(f"최종 LabelEncoder 저장 완료: {ENCODER_PATH.name}, 클래스 수={len(encoder.classes_)}")
-    elif encoder is None and ENCODER_PATH.exists():
-        # ... (기존 인코더 로드 로직 유지) ...
+    if encoder is not None:
+        # NPY 파일이 새로 생성된 경우에만 인코더를 저장
+        if not ENCODER_PATH.exists() or force_reprocess: 
+            with open(ENCODER_PATH, 'w') as f:
+                json.dump({'classes': list(encoder.classes_)}, f)
+            log_message(f"최종 LabelEncoder 저장 완료: {ENCODER_PATH.name}, 클래스 수={len(encoder.classes_)}")
+    elif ENCODER_PATH.exists():
+        # NPY 파일을 재처리하지 않고 기존 파일을 로드한 경우, 인코더를 로드해야 함
         try:
             with open(ENCODER_PATH, 'r') as f:
                 classes = json.load(f)['classes']
@@ -341,7 +378,7 @@ def prepare_and_load_datasets(
             x_npy_path=VAL_X_NPY_PATH,
             y_npy_path=VAL_Y_NPY_PATH,
             processed_manifest_keys_path=PROCESSED_MANIFEST_VAL, # ✅ 처리 키 경로 전달
-            label_encoder=encoder, 
+            label_encoder=encoder, # 훈련 데이터 인코더 전달
             force_reprocess=force_reprocess
         )
     else:
