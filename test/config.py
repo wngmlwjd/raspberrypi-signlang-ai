@@ -25,6 +25,6 @@ TEST_LABELS_DIR = os.path.join(TEST_DIR, "labels")
 # ----------------------------
 # 3. 모델 경로
 # ----------------------------
-MODEL_SAVE_DIR = os.path.join(BASE_DIR, "models", "saved_models") 
+# MODEL_SAVE_DIR = os.path.join(BASE_DIR, "models", "saved_models") 
 
-SEQUENCE_LENGTH = 30  # 테스트 시퀀스 길이
+# SEQUENCE_LENGTH = 30  # 테스트 시퀀스 길이
