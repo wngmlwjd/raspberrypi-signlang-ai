@@ -4,4 +4,3 @@ dataset/
 __pycache__/
 old_models/
 *.h5
-*.tflite
