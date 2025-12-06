@@ -1,0 +1,40 @@
+===== 기본 설정 =====
+SEED=123
+BATCH_SIZE=64
+EPOCHS=200
+SEQUENCE_LENGTH=30
+TRAIN_FEATURES_DIR=/Users/wngmlwjd/workspace/github/raspberrypi-signlang-ai/dataset/processed/train/features
+TRAIN_LABELS_DIR=/Users/wngmlwjd/workspace/github/raspberrypi-signlang-ai/dataset/processed/train/labels
+
+===== 모델/학습 하이퍼파라미터 =====
+MODEL_TYPE=ConvGRUSignModel (Keras)
+INPUT_SIZE=189
+NUM_CLASSES=30
+MAX_JOINTS=63
+DROP_OUT=0.25
+OPTIMIZER=Adam
+LEARNING_RATE=0.0003
+LOSS_FUNCTION=sparse_categorical_crossentropy
+
+===== 데이터 정보 =====
+TRAIN_SAMPLES=77397
+VAL_SAMPLES=19351
+
+===== 콜백 정보 =====
+ModelCheckpoint:
+  monitor=val_loss
+  save_best_only=True
+  verbose=1
+ReduceLROnPlateau:
+  monitor=val_loss
+  factor=0.5
+  patience=5
+  verbose=1
+  min_lr=1e-06
+EarlyStopping:
+  monitor=val_loss
+  patience=15
+  verbose=1
+  restore_best_weights=True
+
+DATE=2025-12-06 13:54:04

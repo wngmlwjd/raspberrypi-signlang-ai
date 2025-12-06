@@ -1,0 +1,23 @@
+Class 0: precision=0.4335, recall=0.7639, f1-score=0.5531, support=1080.0000
+Class 1: precision=0.5920, recall=0.8403, f1-score=0.6946, support=720.0000
+Class 2: precision=0.7009, recall=0.6444, f1-score=0.6715, support=720.0000
+Class 3: precision=0.8293, recall=0.6681, f1-score=0.7400, support=720.0000
+Class 4: precision=0.6446, recall=0.7153, f1-score=0.6781, support=720.0000
+Class 5: precision=0.7746, recall=0.6681, f1-score=0.7174, support=720.0000
+Class 6: precision=0.9195, recall=0.8722, f1-score=0.8952, support=720.0000
+Class 7: precision=0.6817, recall=0.7139, f1-score=0.6974, support=720.0000
+Class 8: precision=0.8386, recall=0.6208, f1-score=0.7135, support=720.0000
+Class 9: precision=0.8742, recall=0.7819, f1-score=0.8255, support=720.0000
+Class 10: precision=0.8743, recall=0.6667, f1-score=0.7565, support=720.0000
+Class 11: precision=0.8381, recall=0.7000, f1-score=0.7629, support=540.0000
+Class 12: precision=0.8214, recall=0.6981, f1-score=0.7548, support=540.0000
+Class 13: precision=0.9759, recall=0.8241, f1-score=0.8936, support=540.0000
+Class 14: precision=0.7186, recall=0.7426, f1-score=0.7304, support=540.0000
+Class 15: precision=0.7776, recall=0.7315, f1-score=0.7538, support=540.0000
+Class 16: precision=0.7517, recall=0.7963, f1-score=0.7734, support=540.0000
+Class 17: precision=0.8915, recall=0.6389, f1-score=0.7443, support=540.0000
+Class 18: precision=0.8536, recall=0.7019, f1-score=0.7703, support=540.0000
+Class 19: precision=0.6306, recall=0.6481, f1-score=0.6393, support=540.0000
+
+Overall:
+accuracy: 0.7232115677321157
