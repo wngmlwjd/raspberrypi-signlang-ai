@@ -1,168 +1,228 @@
 import os
-import glob
-import json
+import random
 import numpy as np
-from sklearn.model_selection import train_test_split
+import tensorflow as tf
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, ReduceLROnPlateau
+from datetime import datetime
 
-from train.config import *
-from models.model_v1 import build_lstm_model
+from preprocess.config import SEQUENCE_LENGTH, TRAIN_FEATURES_DIR, TRAIN_LABELS_DIR, USE_WORD_NUM
+from train.config import (
+    SEED, BATCH_SIZE, EPOCHS, LEARNING_RATE, DROPOUT_RATE,
+    INPUT_SIZE, SEQ_LEN, CONV_CHANNELS, CONV_KERNEL, GRU_HIDDEN, GRU_LAYERS,
+    MODEL_SAVE_DIR
+)
+from models.gru_4 import build_convgru_model_keras
 
-# ----------------------------
-# 0. NPY 데이터 로드
-# ----------------------------
-def load_npy_data(features_dir, labels_dir, sequence_length):
-    """
-    NPY 시퀀스를 로드하고, 길이가 sequence_length와 다르면 패딩 또는 스킵.
-    """
+
+# =====================================================
+# 랜덤 시드 고정
+# =====================================================
+random.seed(SEED)
+np.random.seed(SEED)
+tf.random.set_seed(SEED)
+
+# =====================================================
+# Helper: 화자 ID 추출
+# =====================================================
+def extract_speaker_id(path):
+    parts = path.replace("\\", "/").split("/")
+    for p in parts:
+        if p.isdigit() and len(p) <= 4:
+            return p
+    return None
+
+# =====================================================
+# Helper: label.txt 읽기
+# =====================================================
+def load_label(label_path):
+    with open(label_path, "r") as f:
+        return int(f.read().strip())
+
+# =====================================================
+# 데이터 수집/그룹화/분할
+# =====================================================
+def collect_all_samples():
+    data = []
+    for root, _, files in os.walk(TRAIN_FEATURES_DIR):
+        for f in sorted(files):
+            if not f.endswith(".npy"):
+                continue
+            feat_path = os.path.join(root, f)
+            speaker = extract_speaker_id(feat_path)
+            label_path = feat_path.replace("features","labels").replace(".npy",".txt")
+            if not os.path.exists(label_path):
+                print(f"[WARN] Label missing for {feat_path}")
+                continue
+            class_id = load_label(label_path)
+            data.append((feat_path, label_path, speaker, class_id))
+    return data
+
+def group_by_speaker_and_class(samples):
+    grouped = {}
+    for feat, label, speaker, cls in samples:
+        grouped.setdefault(speaker,{})
+        grouped[speaker].setdefault(cls,[])
+        grouped[speaker][cls].append((feat,label))
+    return grouped
+
+def stratified_split(grouped):
+    train_list = []
+    val_list = []
+    for speaker, cls_dict in grouped.items():
+        for cls, items in cls_dict.items():
+            random.shuffle(items)
+            n = len(items)
+            n_train = int(n*0.8)
+            train_list.extend(items[:n_train])
+            val_list.extend(items[n_train:])
+    return train_list, val_list
+
+# =====================================================
+# Dataset 생성
+# =====================================================
+def load_data(samples, max_joints):
     X, y = [], []
-    feature_files = sorted(glob.glob(os.path.join(features_dir, "*.npy")))
-    
-    for feat_path in feature_files:
-        arr = np.load(feat_path)
-        
-        # 길이가 sequence_length보다 짧으면 0으로 패딩
-        if arr.shape[0] < sequence_length:
-            pad_len = sequence_length - arr.shape[0]
-            pad_shape = (pad_len, arr.shape[1])
-            arr = np.vstack([arr, np.zeros(pad_shape, dtype=arr.dtype)])
-        elif arr.shape[0] > sequence_length:
-            # 길면 슬라이싱
-            arr = arr[:sequence_length]
+    for feat_path, label_path in samples:
+        features = np.load(feat_path)
+        # 패딩/자르기
+        seq_len, feat_dim = features.shape
+        target_dim = max_joints * 3
+        if feat_dim < target_dim:
+            pad_width = target_dim - feat_dim
+            features = np.pad(features, ((0,0),(0,pad_width)), mode='constant')
+        elif feat_dim > target_dim:
+            features = features[:, :target_dim]
 
-        # 길이 맞춤 후 체크
-        if arr.shape[0] != sequence_length:
-            continue  # 혹시 예상치 못한 문제 발생 시 skip
-
-        X.append(arr)
-        
-        lbl_path = feat_path.replace(features_dir, labels_dir).replace(".npy", ".txt")
-        with open(lbl_path, "r") as f:
-            y.append(int(f.read().strip()))
-    
-    X = np.array(X)
-    y = np.array(y)
-    
-    # 로드 확인
-    print(f"✅ Loaded {len(X)} samples. Shape: {X.shape}")
+        X.append(features)
+        y.append(load_label(label_path))
+    X = np.array(X, dtype=np.float32)
+    y = np.array(y, dtype=np.int32)
     return X, y
 
-# ----------------------------
-# 1. 데이터 로드 및 train/val split
-# ----------------------------
-X, y = load_npy_data(TRAIN_FEATURES_DIR, TRAIN_LABELS_DIR, SEQUENCE_LENGTH)
+# =====================================================
+# 날짜 폴더 생성 + 중복 방지
+# =====================================================
+def create_date_folder(base_dir):
+    os.makedirs(base_dir, exist_ok=True)
+    today = datetime.now().strftime("%Y%m%d")
+    existing = [d for d in os.listdir(base_dir) if d.startswith(today)]
+    if not existing:
+        folder_name = f"{today}_1"
+    else:
+        nums = [int(d.split("_")[-1]) for d in existing if "_" in d]
+        next_num = max(nums) + 1 if nums else 1
+        folder_name = f"{today}_{next_num}"
+    folder_path = os.path.join(base_dir, folder_name)
+    os.makedirs(folder_path, exist_ok=True)
+    return folder_path
 
-# train/validation split (0.8 / 0.2)
-X_train, X_val, y_train, y_val = train_test_split(
-    X, y,
-    test_size=0.2,
-    random_state=SEED,
-    stratify=y
-)
+# =====================================================
+# 학습
+# =====================================================
+def train():
+    print("📌 Collecting data...")
+    samples = collect_all_samples()
+    grouped = group_by_speaker_and_class(samples)
+    train_samples, val_samples = stratified_split(grouped)
+    print(f"Train samples: {len(train_samples)} | Val samples: {len(val_samples)}")
 
-print("X_train:", X_train.shape, "y_train:", y_train.shape)
-print("X_val:", X_val.shape, "y_val:", y_val.shape)
+    # 최대 joint 수
+    max_joints = max(np.load(feat_path).shape[1]//3 for feat_path, *_ in samples)
+    print(f"Max joints: {max_joints}")
 
-# ----------------------------
-# 2. 모델 정의
-# ----------------------------
-model = build_lstm_model(
-    input_timesteps=X_train.shape[1],
-    input_features=X_train.shape[2],
-    num_classes=NUM_CLASSES,
-    lstm_units_1=LSTM_UNITS_1,
-    lstm_units_2=LSTM_UNITS_2,
-    dense_units=DENSE_UNITS,
-    dropout_rate=DROPOUT_RATE
-)
+    X_train, y_train = load_data(train_samples, max_joints)
+    X_val, y_val = load_data(val_samples, max_joints)
+    USE_WORD_NUM = len(np.unique(y_train))
 
-model.summary()
+    # 모델 생성
+    model = build_convgru_model_keras(
+        input_size=max_joints*3,
+        seq_len=SEQUENCE_LENGTH,
+        num_classes=USE_WORD_NUM,
+        conv_channels=CONV_CHANNELS,  # 리스트로 변경
+        conv_kernel=CONV_KERNEL,
+        gru_hidden=GRU_HIDDEN,
+        gru_layers=GRU_LAYERS,
+        dropout=DROPOUT_RATE
+    )
 
-# ----------------------------
-# 3. 콜백 설정
-# ----------------------------
-os.makedirs(MODEL_SAVE_DIR, exist_ok=True)
+    model.compile(
+        optimizer=tf.keras.optimizers.Adam(learning_rate=LEARNING_RATE),
+        loss='sparse_categorical_crossentropy',
+        metrics=['accuracy']
+    )
 
-# 새 버전 폴더 생성
-existing = [d for d in os.listdir(MODEL_SAVE_DIR) if os.path.isdir(os.path.join(MODEL_SAVE_DIR, d)) and d.startswith("v")]
-if not existing:
-    next_idx = 1
-else:
-    nums = [int(d.replace("v", "")) for d in existing if d.replace("v", "").isdigit()]
-    next_idx = max(nums) + 1 if nums else 1
+    model.summary()
 
-model_dir = os.path.join(MODEL_SAVE_DIR, f"v{next_idx}")
-os.makedirs(model_dir, exist_ok=True)
+    # 결과 저장 폴더 생성
+    save_dir = create_date_folder(MODEL_SAVE_DIR)
+    save_path = os.path.join(save_dir, "best_model.h5")
+    print(f"Saving models to: {save_path}")
 
-checkpoint_path = os.path.join(model_dir, "best_model.h5")
-checkpoint_cb = ModelCheckpoint(
-    checkpoint_path,
-    monitor="val_loss",
-    save_best_only=True,
-    save_weights_only=False,
-    verbose=1
-)
+    # 콜백 정의
+    checkpoint_cb = ModelCheckpoint(save_path, monitor='val_loss', save_best_only=True, verbose=1)
+    reduce_cb = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=5, verbose=1, min_lr=1e-6)
+    earlystop_cb = EarlyStopping(monitor='val_loss', patience=15, verbose=1, restore_best_weights=True)
+    
+    # =====================================================
+    # config.txt 저장 (콜백 정보 포함)
+    # =====================================================
+    config_txt_path = os.path.join(save_dir, "config.txt")
+    with open(config_txt_path, "w") as f:
+        f.write("===== 기본 설정 =====\n")
+        f.write(f"SEED={SEED}\n")
+        f.write(f"BATCH_SIZE={BATCH_SIZE}\n")
+        f.write(f"EPOCHS={EPOCHS}\n")
+        f.write(f"SEQUENCE_LENGTH={SEQUENCE_LENGTH}\n")
+        f.write(f"TRAIN_FEATURES_DIR={TRAIN_FEATURES_DIR}\n")
+        f.write(f"TRAIN_LABELS_DIR={TRAIN_LABELS_DIR}\n\n")
 
-earlystop_cb = EarlyStopping(
-    monitor="val_loss",
-    patience=10,
-    restore_best_weights=True,
-    verbose=1
-)
+        f.write("===== 모델/학습 하이퍼파라미터 =====\n")
+        f.write(f"MODEL_TYPE=ConvGRUSignModel (Keras)\n")
+        f.write(f"INPUT_SIZE={max_joints*3}\n")
+        f.write(f"NUM_CLASSES={USE_WORD_NUM}\n")
+        f.write(f"MAX_JOINTS={max_joints}\n")
+        f.write(f"DROP_OUT={DROPOUT_RATE}\n")
+        f.write(f"OPTIMIZER=Adam\n")
+        f.write(f"LEARNING_RATE={LEARNING_RATE}\n")
+        f.write(f"LOSS_FUNCTION=sparse_categorical_crossentropy\n\n")
 
-reduce_lr_cb = ReduceLROnPlateau(
-    monitor="val_loss",
-    factor=0.5,
-    patience=5,
-    min_lr=1e-6,
-    verbose=1
-)
+        f.write("===== 데이터 정보 =====\n")
+        f.write(f"TRAIN_SAMPLES={len(train_samples)}\n")
+        f.write(f"VAL_SAMPLES={len(val_samples)}\n\n")
 
-# ----------------------------
-# 4. 모델 학습
-# ----------------------------
-history = model.fit(
-    X_train, y_train,
-    validation_data=(X_val, y_val),
-    epochs=EPOCHS,
-    batch_size=BATCH_SIZE,
-    callbacks=[checkpoint_cb, earlystop_cb, reduce_lr_cb]
-)
+        f.write("===== 콜백 정보 =====\n")
+        f.write(f"ModelCheckpoint:\n")
+        f.write(f"  monitor={checkpoint_cb.monitor}\n")
+        f.write(f"  save_best_only={checkpoint_cb.save_best_only}\n")
+        f.write(f"  verbose={checkpoint_cb.verbose}\n")
+        f.write(f"ReduceLROnPlateau:\n")
+        f.write(f"  monitor={reduce_cb.monitor}\n")
+        f.write(f"  factor={reduce_cb.factor}\n")
+        f.write(f"  patience={reduce_cb.patience}\n")
+        f.write(f"  verbose={reduce_cb.verbose}\n")
+        f.write(f"  min_lr={reduce_cb.min_lr}\n")
+        f.write(f"EarlyStopping:\n")
+        f.write(f"  monitor={earlystop_cb.monitor}\n")
+        f.write(f"  patience={earlystop_cb.patience}\n")
+        f.write(f"  verbose={earlystop_cb.verbose}\n")
+        f.write(f"  restore_best_weights={earlystop_cb.restore_best_weights}\n\n")
 
-# ----------------------------
-# 5. 모델 저장
-# ----------------------------
-model_path = os.path.join(model_dir, "model.h5")
-model.save(model_path)
-print(f"✅ Model saved to: {model_path}")
+        f.write(f"DATE={datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
 
-# ----------------------------
-# 6. 학습 설정 저장
-# ----------------------------
-config_to_save = {
-    "SEED": SEED,
-    "BATCH_SIZE": BATCH_SIZE,
-    "EPOCHS": EPOCHS,
-    "SEQUENCE_LENGTH": SEQUENCE_LENGTH,
-    "SEQUENCE_STEP": SEQUENCE_STEP,
-    "NUM_CLASSES": NUM_CLASSES,
-    "LSTM_UNITS_1": LSTM_UNITS_1,
-    "LSTM_UNITS_2": LSTM_UNITS_2,
-    "DENSE_UNITS": DENSE_UNITS,
-    "DROPOUT_RATE": DROPOUT_RATE,
-    "EarlyStopping_monitor": "val_loss",
-    "EarlyStopping_patience": 10,
-    "EarlyStopping_restore_best_weights": True,
-    "ReduceLROnPlateau_monitor": "val_loss",
-    "ReduceLROnPlateau_factor": 0.5,
-    "ReduceLROnPlateau_patience": 5,
-    "ReduceLROnPlateau_min_lr": 1e-6,
-    "ModelCheckpoint_monitor": "val_loss",
-    "ModelCheckpoint_save_best_only": True
-}
+    print(f"Config saved to {config_txt_path}")
 
-config_path = os.path.join(model_dir, "config.txt")
-with open(config_path, "w") as f:
-    for key, value in config_to_save.items():
-        f.write(f"{key}: {value}\n")
-print(f"✅ Training config (with callbacks) saved to: {config_path}")
+    # 학습
+    model.fit(
+        X_train, y_train,
+        validation_data=(X_val, y_val),
+        batch_size=BATCH_SIZE,
+        epochs=EPOCHS,
+        callbacks=[checkpoint_cb, reduce_cb, earlystop_cb],
+        verbose=1
+    )
+
+    print("Training completed.")
+
+if __name__ == "__main__":
+    train()
