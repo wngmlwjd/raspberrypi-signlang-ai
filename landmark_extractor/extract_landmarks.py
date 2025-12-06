@@ -11,7 +11,6 @@ from landmark_extractor.config import (
     RAW_DIR,
     FRAME_DIR,
     LANDMARKS_DIR,
-    DRAW_IMG_DIR,
     VIDEO_LIST_PATH,
     TOPROCESS_LIST_PATH,
     PROCESSED_LIST_PATH,
@@ -66,13 +65,17 @@ def extract_landmarks(max_count=None):
         log_message(f"[{idx+1}/{total}] Processing {rel_path}")
         video_path = os.path.join(RAW_DIR, rel_path)
 
-        subfolder, filename = os.path.split(rel_path)
-        video_id = os.path.splitext(filename)[0]
+        parts = rel_path.split(os.sep)
+        video_id = os.path.splitext(parts[-1])[0]
 
-        landmark_save_dir = os.path.join(LANDMARKS_DIR, subfolder, video_id)
-        draw_save_dir = os.path.join(DRAW_IMG_DIR, subfolder, video_id)
+        # 상위 폴더(1.Training, 2.Validation) 제외, 그 바로 하위부터 사용
+        if len(parts) >= 3:
+            landmark_subpath = os.path.join(*parts[1:-1], video_id)
+        else:
+            landmark_subpath = video_id
+
+        landmark_save_dir = os.path.join(LANDMARKS_DIR, landmark_subpath)
         os.makedirs(landmark_save_dir, exist_ok=True)
-        os.makedirs(draw_save_dir, exist_ok=True)
 
         shutil.rmtree(FRAME_DIR, ignore_errors=True)
         os.makedirs(FRAME_DIR, exist_ok=True)
@@ -92,18 +95,12 @@ def extract_landmarks(max_count=None):
                 )
                 tracker.save_landmarks(landmarks, save_path)
 
-                # 시각화 저장
-                draw_path = os.path.join(draw_save_dir, frame_file)
-                tracker.draw_and_save_landmarks(frame_path, draw_path, landmarks)
-
-            # 성공했으므로 extracted.txt에 추가
             append_line_to_file(EXTRACTED_LIST_PATH, rel_path)
 
         except Exception as e:
             log_message(f"[ERROR] {rel_path} 처리 실패: {e}")
             append_line_to_file(FAILED_VIDEOS_PATH, rel_path)
 
-        # 실패 여부 상관없이 processed.txt에 기록
         append_line_to_file(PROCESSED_LIST_PATH, rel_path)
         count += 1
         if max_count and count >= max_count:

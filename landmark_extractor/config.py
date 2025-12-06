@@ -26,6 +26,7 @@ RAW_DIR = os.path.join(DATASET_ROOT, "수어 영상")
 
 # 임시 프레임 저장
 FRAME_DIR = os.path.join(PREPROCESSED_DIR, "temp_frames")
+FRAME_DIR_1 = os.path.join(PREPROCESSED_DIR, "temp_frames_1")
 
 # 랜드마크 저장
 LANDMARKS_DIR = os.path.join(PREPROCESSED_DIR, "landmarks")

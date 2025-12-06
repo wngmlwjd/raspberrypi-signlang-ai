@@ -31,33 +31,3 @@ def extract_frames_from_video(video_path, output_dir):
     cap.release()
     log_message(f"[Frames] {video_path} -> {frame_count} frames saved to {output_dir}")
     return frame_count
-
-# def get_video_frame_count(video_path):
-#     """비디오 총 프레임 수 반환"""
-#     cap = cv2.VideoCapture(video_path)
-#     if not cap.isOpened():
-#         log_message(f"[Error] Cannot open video {video_path}")
-#         return -1
-
-#     count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-#     cap.release()
-#     return count
-
-# def save_video_list(root_video_dir=RAW_DIR, save_path=VIDEO_LIST_PATH):
-#     """
-#     RAW_DIR 하위 모든 mp4/avi 영상 목록 txt로 저장
-#     """
-#     os.makedirs(os.path.dirname(save_path), exist_ok=True)
-
-#     video_list = []
-#     for root, _, files in os.walk(root_video_dir):
-#         for f in sorted(files):
-#             if f.lower().endswith((".mp4", ".avi")):
-#                 full_path = os.path.join(root, f)
-#                 rel_path = os.path.relpath(full_path, root_video_dir)
-#                 video_list.append(rel_path)
-
-#     with open(save_path, "w", encoding="utf-8") as f:
-#         f.write("\n".join(video_list))
-
-#     log_message(f"[VideoList] Saved {len(video_list)} videos to {save_path}")
