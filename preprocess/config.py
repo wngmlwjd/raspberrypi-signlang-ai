@@ -4,7 +4,7 @@ import os
 # 기본 설정
 # ===============================
 FPS = 30
-USE_WORD_NUM = 30   # 사용할 라벨 개수
+USE_WORD_NUM = 2000   # 사용할 라벨 개수
 
 # ===============================
 # 디렉토리 경로 설정
@@ -14,6 +14,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATASET_ROOT = os.path.join(BASE_DIR, "dataset")
 LABELS_DIR = os.path.join(DATASET_ROOT, "labels")
 PROCESSED_DIR = os.path.join(DATASET_ROOT, "processed")
+PROCESSED_1_DIR = os.path.join(DATASET_ROOT, "processed_1")
 LANDMARKS_DIR = os.path.join(PROCESSED_DIR, "landmarks")
 
 # 원본 비디오 디렉토리
@@ -65,9 +66,14 @@ USE_LABELS_LIST_PATH = os.path.join(LABELS_DIR, f"labels_list.txt")
 # ===============================
 # 전처리 후 저장될 경로
 # ===============================
-TRAIN_DATASET_DIR = os.path.join(PROCESSED_DIR, "train")
-TEST_DATASET_DIR = os.path.join(PROCESSED_DIR, "test")
+TRAIN_DATASET_DIR = os.path.join(PROCESSED_1_DIR, "train")
+TEST_DATASET_DIR = os.path.join(PROCESSED_1_DIR, "test")
 
+# TRAIN_FEATURES_DIR = os.path.join(TRAIN_DATASET_DIR, "features")   # 입력 데이터
+# TRAIN_LABELS_DIR = os.path.join(TRAIN_DATASET_DIR, "labels")       # 라벨 데이터
+
+# TEST_FEATURES_DIR = os.path.join(TEST_DATASET_DIR, "features")     # 입력 데이터
+# TEST_LABELS_DIR = os.path.join(TEST_DATASET_DIR, "labels")         # 라벨 데이터
 TRAIN_FEATURES_DIR = os.path.join(TRAIN_DATASET_DIR, "features")   # 입력 데이터
 TRAIN_LABELS_DIR = os.path.join(TRAIN_DATASET_DIR, "labels")       # 라벨 데이터
 

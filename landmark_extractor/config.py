@@ -45,3 +45,12 @@ TOPROCESS_LIST_PATH = os.path.join(METADATA_DIR, "to_process.txt")  # 처리할 
 PROCESSED_LIST_PATH = os.path.join(METADATA_DIR, "processed.txt")  # 처리 완료
 EXTRACTED_LIST_PATH = os.path.join(METADATA_DIR, "extracted.txt")  # 프레임 추출 완료
 FAILED_VIDEOS_PATH = os.path.join(METADATA_DIR, "failed.txt")  # 처리 실패
+
+# ===============================
+# single_extract.py 관련 경로
+# ===============================
+
+SINGLE_PROCESSED_DIR = os.path.join(PREPROCESSED_DIR, "single")
+SINGLE_FRAME_DIR = os.path.join(SINGLE_PROCESSED_DIR, "frames")
+SINGLE_LANDMARKS_DIR = os.path.join(SINGLE_PROCESSED_DIR, "landmarks")
+SINGLE_TEST_DIR = os.path.join(SINGLE_PROCESSED_DIR, "test")

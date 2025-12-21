@@ -8,23 +8,51 @@ def build_convgru_model_keras(
     inputs = layers.Input(shape=(seq_len, input_size))
     x = inputs
 
-    # Conv1D 블록
+    # ============================
+    # 1) Multi-Scale Conv Block
+    # ============================
+    # conv_kernel = [3, 5, 7] 형태를 지원
     for filters in conv_channels:
-        x = layers.Conv1D(filters=filters, kernel_size=conv_kernel, padding='same', activation='relu')(x)
+
+        conv_outputs = []
+        for k in conv_kernel:
+            c = layers.Conv1D(filters=filters, kernel_size=k, padding='same', activation='relu')(x)
+            conv_outputs.append(c)
+
+        # 3개 Conv 출력 병합
+        x = layers.Concatenate()(conv_outputs)
         x = layers.BatchNormalization()(x)
         x = layers.Dropout(dropout)(x)
 
-    # Bi-GRU 스택: 앞 레이어들은 시퀀스 반환, 마지막은 단일 출력
+    # ============================
+    # 2) Bi-GRU Stack
+    # ============================
     for i in range(gru_layers):
         return_seq = True if i < gru_layers - 1 else False
-        x = layers.Bidirectional(layers.GRU(gru_hidden, return_sequences=return_seq, dropout=dropout, recurrent_dropout=0.0))(x)
+        x = layers.Bidirectional(
+            layers.GRU(
+                gru_hidden,
+                return_sequences=return_seq,
+                dropout=dropout,
+                recurrent_dropout=0.0
+            )
+        )(x)
 
-    # Fully connected layers
-    x = layers.Dense(gru_hidden, activation='relu')(x)
-    x = layers.Dropout(dropout)(x)
-    x = layers.Dense(gru_hidden // 2, activation='relu')(x)
-    x = layers.Dropout(dropout)(x)
+    # ============================
+    # 3) Dense + Residual
+    # ============================
+    h = layers.Dense(gru_hidden, activation='relu')(x)
+    h = layers.Dropout(dropout)(h)
 
+    h = layers.Dense(gru_hidden // 2, activation='relu')(h)
+    h = layers.Dropout(dropout)(h)
+
+    # GRU 출력 + Dense 블록 결합
+    x = layers.Concatenate()([x, h])
+
+    # ============================
+    # 4) Output
+    # ============================
     outputs = layers.Dense(num_classes, activation='softmax')(x)
 
     return models.Model(inputs, outputs)

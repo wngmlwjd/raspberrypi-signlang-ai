@@ -1,0 +1,55 @@
+가다: precision=0.7872, recall=0.9250, f1-score=0.8506, support=40.0000
+강요: precision=0.8000, recall=0.4000, f1-score=0.5333, support=20.0000
+거만: precision=0.9667, recall=0.9667, f1-score=0.9667, support=30.0000
+거지: precision=1.0000, recall=0.9333, f1-score=0.9655, support=30.0000
+격노: precision=1.0000, recall=0.8000, f1-score=0.8889, support=30.0000
+결심: precision=1.0000, recall=1.0000, f1-score=1.0000, support=40.0000
+결점: precision=0.9000, recall=0.9000, f1-score=0.9000, support=40.0000
+근근이: precision=0.9302, recall=1.0000, f1-score=0.9639, support=40.0000
+꺼지다: precision=0.8636, recall=0.9500, f1-score=0.9048, support=60.0000
+내뱉다: precision=0.8824, recall=1.0000, f1-score=0.9375, support=30.0000
+놀랍다: precision=0.9677, recall=1.0000, f1-score=0.9836, support=30.0000
+달변: precision=0.9474, recall=0.9000, f1-score=0.9231, support=20.0000
+대들다: precision=0.7600, recall=0.9500, f1-score=0.8444, support=20.0000
+대박: precision=1.0000, recall=1.0000, f1-score=1.0000, support=20.0000
+대출: precision=1.0000, recall=1.0000, f1-score=1.0000, support=30.0000
+돕다: precision=0.8485, recall=0.9333, f1-score=0.8889, support=30.0000
+똑똑하다: precision=0.8333, recall=1.0000, f1-score=0.9091, support=20.0000
+막히다: precision=0.9487, recall=0.9250, f1-score=0.9367, support=40.0000
+맞다: precision=0.9677, recall=1.0000, f1-score=0.9836, support=30.0000
+맥없다: precision=0.9062, recall=0.9667, f1-score=0.9355, support=30.0000
+모르다: precision=0.8000, recall=0.8000, f1-score=0.8000, support=20.0000
+무례: precision=0.9677, recall=1.0000, f1-score=0.9836, support=30.0000
+무자비: precision=0.9091, recall=1.0000, f1-score=0.9524, support=30.0000
+봐주다: precision=1.0000, recall=0.9333, f1-score=0.9655, support=30.0000
+빌리다: precision=0.8438, recall=0.9000, f1-score=0.8710, support=30.0000
+뻔뻔: precision=0.9444, recall=0.8500, f1-score=0.8947, support=40.0000
+사라지다: precision=0.9583, recall=0.7667, f1-score=0.8519, support=30.0000
+순식간: precision=0.9677, recall=1.0000, f1-score=0.9836, support=30.0000
+십: precision=0.9474, recall=0.9000, f1-score=0.9231, support=20.0000
+아부: precision=0.9655, recall=0.9333, f1-score=0.9492, support=30.0000
+아하: precision=1.0000, recall=0.9333, f1-score=0.9655, support=30.0000
+양자택일: precision=0.8696, recall=1.0000, f1-score=0.9302, support=20.0000
+얕보다: precision=0.8462, recall=0.8250, f1-score=0.8354, support=40.0000
+언덕: precision=0.9500, recall=0.9500, f1-score=0.9500, support=20.0000
+욕하다: precision=0.6444, recall=0.9667, f1-score=0.7733, support=30.0000
+유구무언: precision=1.0000, recall=0.8750, f1-score=0.9333, support=40.0000
+유치하다: precision=0.9048, recall=0.9500, f1-score=0.9268, support=20.0000
+의문: precision=0.9355, recall=1.0000, f1-score=0.9667, support=29.0000
+인색하다: precision=1.0000, recall=1.0000, f1-score=1.0000, support=20.0000
+일시불: precision=1.0000, recall=0.7500, f1-score=0.8571, support=20.0000
+적격: precision=0.9000, recall=0.9000, f1-score=0.9000, support=20.0000
+주다: precision=0.9333, recall=0.9333, f1-score=0.9333, support=30.0000
+지도: precision=0.9643, recall=0.6750, f1-score=0.7941, support=40.0000
+지불하다: precision=0.8333, recall=1.0000, f1-score=0.9091, support=30.0000
+판박이: precision=1.0000, recall=1.0000, f1-score=1.0000, support=30.0000
+팔: precision=0.9500, recall=0.9500, f1-score=0.9500, support=20.0000
+폐업: precision=1.0000, recall=0.8667, f1-score=0.9286, support=30.0000
+포기: precision=0.9600, recall=0.8000, f1-score=0.8727, support=30.0000
+함구: precision=1.0000, recall=1.0000, f1-score=1.0000, support=40.0000
+험담: precision=1.0000, recall=0.9000, f1-score=0.9474, support=20.0000
+
+Overall Accuracy:
+0.9202
+Top-5 Accuracy:
+0.9932

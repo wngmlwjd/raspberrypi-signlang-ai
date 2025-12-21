@@ -222,7 +222,7 @@ def save_sequences(sequences: List[Dict], feat_dir: str, label_dir: str) -> int:
 
         np.save(feat_path, seq_flat)
         with open(label_path, "w") as f:
-            f.write(str(item['int_label']))
+            f.write(item['word'])
 
         saved_files.append((feat_path, label_path))
 
@@ -268,3 +268,13 @@ if __name__ == "__main__":
 
     log_message(f"✅ Pipeline finished in {perf_counter() - start_time:.2f}s")
     log_message(f"Total train sequences saved: {train_saved_count}, Total test sequences saved: {test_saved_count}")
+    
+    # ---- 실제 저장된 파일 확인 ----
+    actual_train_feat = len(glob.glob(os.path.join(TRAIN_FEATURES_DIR, "*.npy")))
+    actual_train_label = len(glob.glob(os.path.join(TRAIN_LABELS_DIR, "*.txt")))
+    actual_test_feat = len(glob.glob(os.path.join(TEST_FEATURES_DIR, "*.npy")))
+    actual_test_label = len(glob.glob(os.path.join(TEST_LABELS_DIR, "*.txt")))
+
+    log_message(f"📦 Actual train features: {actual_train_feat}, labels: {actual_train_label}")
+    log_message(f"📦 Actual test features:  {actual_test_feat}, labels: {actual_test_label}")
+

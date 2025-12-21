@@ -1,0 +1,33 @@
+가다: precision=0.7054, recall=0.6237, f1-score=0.6620, support=760.0000
+격노: precision=0.8883, recall=0.6421, f1-score=0.7454, support=570.0000
+결심: precision=0.8073, recall=0.7605, f1-score=0.7832, support=760.0000
+결점: precision=0.7603, recall=0.6303, f1-score=0.6892, support=760.0000
+근근이: precision=0.8505, recall=0.8684, f1-score=0.8594, support=760.0000
+꺼지다: precision=0.6043, recall=0.6430, f1-score=0.6230, support=1140.0000
+내뱉다: precision=0.7561, recall=0.6474, f1-score=0.6975, support=570.0000
+놀랍다: precision=0.6882, recall=0.7088, f1-score=0.6984, support=570.0000
+대출: precision=0.6562, recall=0.7368, f1-score=0.6942, support=570.0000
+막히다: precision=0.6840, recall=0.6921, f1-score=0.6880, support=760.0000
+맞다: precision=0.7580, recall=0.5825, f1-score=0.6587, support=570.0000
+맥없다: precision=0.7413, recall=0.6386, f1-score=0.6861, support=570.0000
+무례: precision=0.7739, recall=0.7684, f1-score=0.7711, support=570.0000
+무자비: precision=0.7432, recall=0.6702, f1-score=0.7048, support=570.0000
+봐주다: precision=0.7554, recall=0.6772, f1-score=0.7142, support=570.0000
+빌리다: precision=0.6126, recall=0.5965, f1-score=0.6044, support=570.0000
+뻔뻔: precision=0.4843, recall=0.7737, f1-score=0.5957, support=760.0000
+순식간: precision=0.7028, recall=0.6140, f1-score=0.6554, support=570.0000
+아부: precision=0.7840, recall=0.6175, f1-score=0.6909, support=570.0000
+아하: precision=0.4938, recall=0.6316, f1-score=0.5543, support=570.0000
+얕보다: precision=0.6382, recall=0.6289, f1-score=0.6335, support=760.0000
+욕하다: precision=0.6860, recall=0.7053, f1-score=0.6955, support=570.0000
+유구무언: precision=0.7378, recall=0.5961, f1-score=0.6594, support=760.0000
+의문: precision=0.7480, recall=0.8403, f1-score=0.7915, support=551.0000
+주다: precision=0.6318, recall=0.5509, f1-score=0.5886, support=570.0000
+지도: precision=0.8655, recall=0.6605, f1-score=0.7493, support=760.0000
+지불하다: precision=0.5496, recall=0.7772, f1-score=0.6439, support=570.0000
+판박이: precision=0.9411, recall=0.8123, f1-score=0.8719, support=570.0000
+포기: precision=0.7174, recall=0.6368, f1-score=0.6747, support=570.0000
+함구: precision=0.5105, recall=0.8289, f1-score=0.6319, support=760.0000
+
+Overall Accuracy:
+0.6860

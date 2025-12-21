@@ -1,0 +1,27 @@
+===== 기본 설정 =====
+SEED=123
+BATCH_SIZE=8
+EPOCHS=200
+SEQUENCE_LENGTH=30
+
+===== 모델 하이퍼파라미터 =====
+INPUT_SIZE=63
+NUM_CLASSES=30
+MAX_JOINTS=21
+CONV_CHANNELS=[64, 96]
+CONV_KERNEL=[3, 5, 7]
+GRU_HIDDEN=128
+GRU_LAYERS=2
+DROPOUT_RATE=0.25
+LEARNING_RATE=0.0003
+
+===== 데이터 정보 =====
+TRAIN_SAMPLES=4073
+VAL_SAMPLES=1019
+
+===== 콜백 정보 =====
+ModelCheckpoint: monitor=val_loss, save_best_only=True
+ReduceLROnPlateau: monitor=val_loss, factor=0.5, patience=3, min_lr=1e-06
+EarlyStopping: monitor=val_loss, patience=15, restore_best_weights=True
+
+DATE=2025-12-10 03:45:15
