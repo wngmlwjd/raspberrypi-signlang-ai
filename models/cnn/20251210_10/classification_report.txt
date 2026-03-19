@@ -2005,4 +2005,4 @@ Top-5 Accuracy:
 Top-3 Accuracy:
 0.9666
 Average inference time per sample:
-0.000488 sec
+0.000394 sec
