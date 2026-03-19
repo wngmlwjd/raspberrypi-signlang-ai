@@ -116,4 +116,4 @@ python main.py
 
 ## 📌 사용 데이터셋
 
-- [AI Hub - 수어 영상 데이터](https://aihub.or.kr)
+- [AI Hub - 수어 영상 데이터](https://aihub.or.kr/aihubdata/data/view.do?pageIndex=1&currMenu=115&topMenu=100&srchOptnCnd=OPTNCND001&searchKeyword=%EC%88%98%EC%96%B4&srchDetailCnd=DETAILCND001&srchOrder=ORDER001&srchPagePer=20&aihubDataSe=data&dataSetSn=103)
